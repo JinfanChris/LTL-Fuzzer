@@ -1,7 +1,8 @@
-// proto/ltlfuzz.proto
 syntax = "proto3";
 
 package ltlfuzz;
+
+option go_package = "gen/ltlfuzz;ltlfuzzpb";
 
 service FuzzService {
   rpc PrepareLTLProperties(LTLList) returns (Status);
