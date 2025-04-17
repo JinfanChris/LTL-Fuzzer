@@ -19,10 +19,11 @@ target_link_libraries(${Entry} PUBLIC
     spot
     bddx
     rt
-	boost_system
+ boost_system
 
 )
 
 add_subdirectory(automata)
 add_subdirectory(instrumentation)
 add_subdirectory(aflgo-extension)
+add_subdirectory(grpc)

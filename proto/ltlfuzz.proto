@@ -1,0 +1,20 @@
+// proto/ltlfuzz.proto
+syntax = "proto3";
+
+package ltlfuzz;
+
+service FuzzService {
+  rpc PrepareLTLProperties(LTLList) returns (Status);
+  rpc SubmitTrace(TraceInput) returns (CheckResult);
+}
+
+message LTLList { repeated string properties = 1; }
+
+message TraceInput { string trace = 1; }
+
+message CheckResult {
+  bool satisfied = 1;
+  repeated string violations = 2;
+}
+
+message Status { string message = 1; }
