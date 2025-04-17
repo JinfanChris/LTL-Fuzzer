@@ -13,7 +13,9 @@ func main() {
 		panic(err)
 	}
 
-	msg, err := c.PrepareLTL([]string{"G (a -> F b)", "G (b -> F a)"})
+	ltlProperties := []string{"!G (a -> F c)", "!G (b -> F !a)"}
+	msg, err := c.PrepareLTL(ltlProperties)
+
 	if err != nil {
 		logrus.Fatalf("failed to prepare LTL properties: %v", err)
 		panic(err)
@@ -21,11 +23,26 @@ func main() {
 
 	logrus.Infof("LTL properties prepared: %s", msg)
 
-	satisfied, violations, err := c.SubmitTrace("a b a b")
+	logrus.Infof("Input LTL properties: ")
+	for _, l := range ltlProperties {
+		logrus.Infof("\t- %s", l)
+	}
+
+	trace := "a,b,c,b"
+
+	_, violations, err := c.SubmitTrace(trace)
 	if err != nil {
 		logrus.Fatalf("failed to submit trace: %v", err)
 		panic(err)
 	}
 
-	logrus.Infof("Trace satisfied properties: %v, violations: %v", satisfied, violations)
+	logrus.Infof("Input Trace: %s", trace)
+
+	if len(violations) > 0 {
+		for _, v := range violations {
+			logrus.Infof("Trace violates properties: %v", v)
+		}
+	} else {
+		logrus.Infof("Trace satisfies all properties")
+	}
 }
