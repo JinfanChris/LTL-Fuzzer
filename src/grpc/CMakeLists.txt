@@ -1,44 +1,37 @@
-# include_directories(${GRPC_INCLUDE_DIRS} ${PROTOBUF_INCLUDE_DIRS})
-# link_directories(${GRPC_LIBRARY_DIRS} ${PROTOBUF_LIBRARY_DIRS})
-#
-# add_library(proto_grpc
-#     ../../gen/ltlfuzz.pb.cc
-#     ../../gen/ltlfuzz.grpc.pb.cc
-# )
-#
-#
-# add_executable(ltlfuzz_grpc_server main.cc ltlfuzzServiceImpl.cc)
-# target_link_libraries(ltlfuzz_grpc_server proto_grpc automata_core)
-#
-# Include the generated gRPC headers (ltlfuzz.pb.h, ltlfuzz.grpc.pb.h)
-include_directories(
-    ${GRPC_INCLUDE_DIRS}
-    ${PROTOBUF_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/gen   # 👈 this is what was missing
-)
-
-link_directories(
-    ${GRPC_LIBRARY_DIRS}
-    ${PROTOBUF_LIBRARY_DIRS}
-)
-
 # Compile the gRPC proto library
 add_library(proto_grpc
-    ../../gen/ltlfuzz.pb.cc
-    ../../gen/ltlfuzz.grpc.pb.cc
+     ../../gen/ltlfuzz.pb.cc
+     ../../gen/ltlfuzz.grpc.pb.cc
+ )
+
+target_include_directories(proto_grpc PUBLIC
+    ${CMAKE_SOURCE_DIR}/gen
+    ${GRPC_INCLUDE_DIRS}
+    ${PROTOBUF_INCLUDE_DIRS}
 )
 
-# Build the gRPC server binary
+target_link_libraries(proto_grpc PUBLIC
+    ${PROTOBUF_LIBRARIES}
+    ${GRPC_LIBRARIES}
+)
+
 add_executable(ltlfuzz_grpc_server
     main.cc
     ltlfuzzServiceImpl.cc
 )
 
-# Link everything together
-target_link_libraries(ltlfuzz_grpc_server
+target_include_directories(ltlfuzz_grpc_server PRIVATE
+    ${GRPC_INCLUDE_DIRS}
+    ${PROTOBUF_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/gen
+)
+
+target_link_libraries(ltlfuzz_grpc_server PRIVATE
     proto_grpc
     automata
-    ${PROTOBUF_LIBRARIES}
-    ${GRPC_LIBRARIES}
     pthread
+    spot
+    bddx
+    rt
+    boost_system
 )
