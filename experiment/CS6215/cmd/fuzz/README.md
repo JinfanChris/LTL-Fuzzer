@@ -6,7 +6,7 @@
 
 ## How to run
 
-1. Start grpc server (see)
+1. Start grpc server at below
 
 ```bash
 # in ${PPROJECT_DIR}/build
