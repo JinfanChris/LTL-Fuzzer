@@ -1,12 +1,20 @@
 #include <cassert>
 #include <fstream>
+#include <spot/parseaut/public.hh>
 #include <spot/tl/exclusive.hh>
 #include <spot/tl/formula.hh>
 #include <spot/tl/parse.hh>
-// #include <spot/twaalgos/hoa.hh>
+#include <spot/twa/bdddict.hh>
+#include <spot/twa/bddprint.hh>
+#include <spot/twaalgos/hoa.hh>
 #include <spot/twaalgos/translate.hh>
 
 #include <automata.h>
+#include <string>
+#include <vector>
+
+void custom_print(std::ostream &out, const spot::twa_graph_ptr &aut,
+                  const spot::formula pf);
 
 namespace lfz {
 namespace automata {
@@ -157,7 +165,7 @@ bool Iterator::is_true_cond() const {
 
 bool Iterator::check_cond(const std::set<std::string> &events) const {
   std::set<int> event_indices;
-  for (const auto e : events) {
+  for (const auto &e : events) {
     if (this->bdd_map_->count(e) > 0) {
       event_indices.insert(this->bdd_map_->at(e));
     }
@@ -203,23 +211,24 @@ Automata &Automata::operator=(const Automata &a) {
 
 Automata::~Automata() {}
 
-std::string Automata::formula() const { return this->formula_; }
+spot::formula Automata::formula() const { return pf.f; }
 
 void Automata::set_formula(const std::string &formula,
                            const std::string &exclusive) {
-  std::cout << "Set formula: >" << formula << "<" << std::endl;
-  std::cout << "Set exclusive: >" << exclusive << "<" << std::endl;
-  this->formula_ = formula;
+  // std::cout << "Set formula: >" << formula << "<" << std::endl;
+  // std::cout << "Set exclusive: >" << exclusive << "<" << std::endl;
 
   std::ostringstream error;
-  spot::parsed_formula pf = spot::parse_infix_psl(formula);
+  pf = spot::parse_infix_psl(formula);
   if (pf.format_errors(error)) {
     throw AutomataException("Failed to parse formula " + formula + '\n' +
                             error.str());
   }
+
+  std::cout << "Parsed formula: " << pf.f << std::endl;
+
   spot::translator translator;
-  // translator.set_pref(spot::postprocessor::Deterministic);
-  translator.set_type(spot::postprocessor::Buchi);
+  translator.set_type(spot::postprocessor::BA);
   translator.set_pref(spot::postprocessor::SBAcc);
   this->automata_ = translator.run(pf.f);
 
@@ -238,11 +247,17 @@ void Automata::set_formula(const std::string &formula,
   if (last < exclusive.length()) {
     excl_formulas.push_back(spot::parse_infix_psl(exclusive.substr(last)).f);
   }
+
   if (!excl_formulas.empty()) {
     spot::exclusive_ap excl;
     excl.add_group(excl_formulas);
     this->automata_ = excl.constrain(this->automata_, true);
   }
+
+  custom_print(std::cout, this->automata_, this->pf.f);
+
+  // std::cout << "After Exclude" << std::endl;
+  // custom_print(std::cout, this->automata_, this->pf.f);
 
   /* Construct BDD variable map */
   this->bdd_map_.clear();
@@ -273,8 +288,40 @@ Iterator Automata::get_iterator(const State &state) const {
                   &this->reverse_bdd_map_);
 }
 
+// void Automata::checkrun(std::vector<std::string> &events, bool &acc) {
+//   std::vector<bdd> trace_bdds;
+//   for (const auto &e : events) {
+//     bdd label = bddfalse;
+//     auto it = bdd_map_.find(e);
+//     if (it != bdd_map_.end()) {
+//       label = automata_->get_dict()->bdd_ithvar(it->second);
+//     }
+//     trace_bdds.push_back(label);
+//   }
+//
+//   auto run = spot::accepting_run(automata_, trace_bdds);
+//   if (run) {
+//     std::cout << "Trace is ACCEPTED by the automaton (Spot-level)."
+//               << std::endl;
+//   } else {
+//     std::cout << "Trace is REJECTED by the automaton." << std::endl;
+//   }
+// }
+
 void Automata::model_check_events(const std::vector<std::string> &events,
                                   std::vector<MCState> &states) const {
+  std::cout << "--------------------- Model Checking --------------------"
+            << std::endl;
+  // std::cout << "\tTrace:";
+  // for (const auto &e : events) {
+  //   std::cout << " " << e;
+  // }
+  // std::cout << std::endl;
+
+  std::cout << "\tLTL: " << this->formula() << std::endl;
+  // std::cout << ">>>>>>>>>>>> Automaton:" << std::endl;
+  // print_hoa(std::cout, this->automata_) << "\n";
+  // custom_print(std::cout, this->automata_, this->pf.f);
 
   states.clear();
   State s = get_init_state();
@@ -282,7 +329,6 @@ void Automata::model_check_events(const std::vector<std::string> &events,
   // std::cout << "Initial state: " << s.state_num() << std::endl;
 
   for (const auto &e : events) {
-    // std::cout << "Event: " << e << std::endl;
     bool cond_sat = false;
     Iterator it = get_iterator(s);
     for (it.first(); !it.done(); it.next()) {
@@ -314,6 +360,14 @@ void Automata::model_check_events(const std::vector<std::string> &events,
       break;
     }
   }
+
+  std::cout << "\tStates: ";
+  for (auto &s : states) {
+    std::cout << "{s:" << s.state << ", acc:" << s.acceptance << "} ";
+  }
+
+  std::cout << std::endl;
+  // std::cout << "====================" << std::endl;
 }
 
 void Automata::get_state_transitions(int state,
@@ -410,3 +464,66 @@ void Automata::get_state_paths(int curState, paths_t &paths,
 
 } // namespace automata
 } // namespace lfz
+//
+
+void custom_print(std::ostream &out, const spot::twa_graph_ptr &aut,
+                  const spot::formula f) {
+  // We need the dictionary to print the BDDs that label the edges
+  const spot::bdd_dict_ptr &dict = aut->get_dict();
+
+  // Some meta-data...
+  out << ">>>>>>>>>>>>>>>>>>>>>>>>>> Cutom Print Start" << "\n";
+  out << "LTL: " << f << "\n";
+  out << "Acceptance: " << aut->get_acceptance() << '\n';
+  out << "Number of sets: " << aut->num_sets() << '\n';
+  out << "Number of states: " << aut->num_states() << '\n';
+  out << "Number of edges: " << aut->num_edges() << '\n';
+  out << "Initial state: " << aut->get_init_state_number() << '\n';
+  out << "Atomic propositions:";
+  for (spot::formula ap : aut->ap())
+    out << ' ' << ap << " (=" << dict->varnum(ap) << ')';
+  out << '\n';
+
+  // Arbitrary data can be attached to automata, by giving them
+  // a type and a name.  The HOA parser and printer both use the
+  // "automaton-name" to name the automaton.
+  if (auto name = aut->get_named_prop<std::string>("automaton-name"))
+    out << "Name: " << *name << '\n';
+
+  // For the following prop_*() methods, the return value is an
+  // instance of the spot::trival class that can represent
+  // yes/maybe/no.  These properties correspond to bits stored in the
+  // automaton, so they can be queried in constant time.  They are
+  // only set whenever they can be determined at a cheap cost: for
+  // instance an algorithm that always produces deterministic automata
+  // would set the deterministic property on its output.  In this
+  // example, the properties that are set come from the "properties:"
+  // line of the input file.
+  out << "Complete: " << aut->prop_complete() << '\n';
+  out << "Deterministic: " << (aut->prop_universal() && aut->is_existential())
+      << '\n';
+  out << "Unambiguous: " << aut->prop_unambiguous() << '\n';
+  out << "State-Based Acc: " << aut->prop_state_acc() << '\n';
+  out << "Terminal: " << aut->prop_terminal() << '\n';
+  out << "Weak: " << aut->prop_weak() << '\n';
+  out << "Inherently Weak: " << aut->prop_inherently_weak() << '\n';
+  out << "Stutter Invariant: " << aut->prop_stutter_invariant() << '\n';
+
+  // States are numbered from 0 to n-1
+  unsigned n = aut->num_states();
+  for (unsigned s = 0; s < n; ++s) {
+    out << "State " << s << ":\n";
+
+    // The out(s) method returns a fake container that can be
+    // iterated over as if the contents was the edges going
+    // out of s.  Each of these edges is a quadruplet
+    // (src,dst,cond,acc).  Note that because this returns
+    // a reference, the edge can also be modified.
+    for (auto &t : aut->out(s)) {
+      out << "  edge(" << t.src << " -> " << t.dst << ")\n    label = ";
+      spot::bdd_print_formula(out, dict, t.cond);
+      out << "\n    acc sets = " << t.acc << '\n';
+    }
+  }
+  out << "<<<<<<<<<<<<<<<<<<<<<<<<< Custom Print End " << "\n";
+}
