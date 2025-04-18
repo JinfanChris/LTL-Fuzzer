@@ -1,10 +1,12 @@
 // src/grpc/LTLFuzzServiceImpl.cc
 #include "automata.h"
 #include "automata_handler.h" // Existing logic
+#include "generateUUID.h"     // UUID generation
 #include "ltlfuzz.grpc.pb.h"
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <mutex>
 #include <sstream>
 #include <vector>
 
@@ -19,7 +21,18 @@ class LTLFuzzServiceImpl final : public FuzzService::Service {
 public:
   Status PrepareLTLProperties(ServerContext *context, const LTLList *request,
                               ::ltlfuzz::Status *reply) override {
-    autometa_list_.clear();
+
+    std::string uuid;
+    do {
+      uuid = generateUUID();
+      std::cout << "UUID: " << uuid << std::endl;
+    } while (storage.find(uuid) != storage.end());
+    auto autometa_list_ = std::vector<lfz::automata::Automata *>();
+
+    {
+      std::lock_guard<std::mutex> lock(storage_mutex);
+      storage[uuid] = autometa_list_;
+    }
 
     auto properties = request->properties();
     auto exclude = request->exclude();
@@ -42,6 +55,7 @@ public:
     }
     // Pass request->properties() to your automata handler
     reply->set_message("Properties loaded.");
+    reply->set_uuid(uuid);
     return Status::OK;
   }
 
@@ -51,6 +65,7 @@ public:
     std::cout << "<<<<<<<<<<<<<<<<<<<< Submitted Trace >>>>>>>>>>>>>>>>>>>>"
               << "\n\t" << request->trace() << std::endl;
     std::string trace_str = request->trace();
+    std::string uuid = request->uuid();
     // std::cout << "Received trace: " << request->trace() << std::endl;
 
     std::vector<std::string> trace_events;
@@ -62,6 +77,16 @@ public:
     }
 
     bool satisfied_one = false;
+    if (storage.find(uuid) == storage.end()) {
+      std::cerr << "UUID Error: " << std::endl;
+      return Status(grpc::INVALID_ARGUMENT, "UUID Not found");
+    }
+
+    std::vector<lfz::automata::Automata *> autometa_list_;
+    {
+      std::lock_guard<std::mutex> lock(storage_mutex);
+      autometa_list_ = storage[uuid];
+    }
     for (auto &automata : autometa_list_) {
       std::vector<lfz::automata::MCState> trace_states;
       try {
@@ -105,5 +130,6 @@ public:
   }
 
 private:
-  std::vector<lfz::automata::Automata *> autometa_list_;
+  std::map<std::string, std::vector<lfz::automata::Automata *>> storage;
+  std::mutex storage_mutex;
 };

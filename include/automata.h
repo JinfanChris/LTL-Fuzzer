@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <set>
 #include <spot/tl/parse.hh>
 #include <spot/twa/twagraph.hh>
@@ -139,6 +140,8 @@ private:
                   std::vector<int> &isVisited, std::stack<int> &path) const;
 
   spot::parsed_formula pf;
+
+  mutable std::mutex mtx_;
 };
 
 } // namespace automata

@@ -217,6 +217,7 @@ void Automata::set_formula(const std::string &formula,
                            const std::string &exclusive) {
   // std::cout << "Set formula: >" << formula << "<" << std::endl;
   // std::cout << "Set exclusive: >" << exclusive << "<" << std::endl;
+  std::lock_guard<std::mutex> lock(mtx_);
 
   std::ostringstream error;
   pf = spot::parse_infix_psl(formula);
@@ -310,6 +311,9 @@ Iterator Automata::get_iterator(const State &state) const {
 
 void Automata::model_check_events(const std::vector<std::string> &events,
                                   std::vector<MCState> &states) const {
+
+  std::lock_guard<std::mutex> lock(mtx_);
+
   std::cout << "--------------------- Model Checking --------------------"
             << std::endl;
   // std::cout << "\tTrace:";
