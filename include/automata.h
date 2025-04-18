@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <set>
+#include <spot/tl/parse.hh>
 #include <spot/twa/twagraph.hh>
 #include <stack>
 #include <string>
@@ -102,6 +103,8 @@ public:
   State get_init_state() const;
   Iterator get_iterator(const State &state) const;
 
+  // void checkrun(std::vector<std::string> &events, bool &Accept);
+
   void model_check_events(const std::vector<std::string> &events,
                           std::vector<MCState> &states) const;
   /*
@@ -125,7 +128,7 @@ public:
    */
   void get_state_events(int curState, int nextState, events_t &events) const;
 
-  std::string formula() const;
+  spot::formula formula() const;
 
 private:
   spot::twa_graph_ptr automata_;
@@ -135,7 +138,7 @@ private:
   void find_paths(std::stack<int> &sstack, paths_t &paths,
                   std::vector<int> &isVisited, std::stack<int> &path) const;
 
-  std::string formula_;
+  spot::parsed_formula pf;
 };
 
 } // namespace automata
