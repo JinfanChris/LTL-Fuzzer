@@ -1,0 +1,67 @@
+# Example Code using the api
+
+```go
+package main
+
+import (
+ "tracor/client"
+
+ "github.com/sirupsen/logrus"
+)
+
+func main() {
+ c, err := client.NewLTLFuzzClient("localhost:50051")
+ if err != nil {
+  logrus.Fatalf("failed to create client: %v", err)
+  panic(err)
+ }
+
+    // Define LTL properties
+ ltlProperties := []string{"!G (a -> F c)", "!G (b -> F a)"}
+ msg, err := c.PrepareLTL(ltlProperties)
+
+ if err != nil {
+  logrus.Fatalf("failed to prepare LTL properties: %v", err)
+  panic(err)
+ }
+
+ logrus.Infof("LTL properties prepared: %s", msg)
+
+ logrus.Infof("Input LTL properties: ")
+ for _, l := range ltlProperties {
+  logrus.Infof("\t- %s", l)
+ }
+
+ trace := "a,b,c,b"
+
+    // Evaluate the trace
+ _, violations, err := c.SubmitTrace(trace)
+ if err != nil {
+  logrus.Fatalf("failed to submit trace: %v", err)
+  panic(err)
+ }
+
+ logrus.Infof("Input Trace: %s", trace)
+
+ if len(violations) > 0 {
+  for _, v := range violations {
+   logrus.Infof("Trace violates properties: %v", v)
+  }
+ } else {
+  logrus.Infof("Trace satisfies all properties")
+ }
+}
+```
+
+- output:
+
+```bash
+❯ go run cmd/example/main.go
+INFO[0000] LTL properties prepared: Properties loaded.
+INFO[0000] Input LTL properties:
+INFO[0000]      - F(a&F(o&G(!n)))
+INFO[0000]      - F(a&F(o&F(n)))
+INFO[0000] Input Trace: a,o,b,b,b,b,b
+INFO[0000] Trace satisfied properties: F(a & F(o & G!n)),
+WARN[0000] Trace is INVALID
+```

@@ -35,12 +35,13 @@ func (c *LTLFuzzClient) Close() error {
 }
 
 // PrepareLTL sends LTL properties to the server
-func (c *LTLFuzzClient) PrepareLTL(properties []string) (string, error) {
+func (c *LTLFuzzClient) PrepareLTL(properties, exclude []string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	resp, err := c.client.PrepareLTLProperties(ctx, &pb.LTLList{
 		Properties: properties,
+		Exclude:    exclude,
 	})
 	if err != nil {
 		return "", err
