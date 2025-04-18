@@ -19,7 +19,9 @@ func main() {
 	ltlProperties := []string{"F(a&F(o&G(!n)))", "F(a&F(o&F(n)))"}
 	exclude := []string{"a,o,n,b", "a,o,n,b"}
 	// exclude := []string{""}
-	msg, err := c.PrepareLTL(ltlProperties, exclude)
+	msg, uuid, err := c.PrepareLTL(ltlProperties, exclude)
+
+	logrus.Infof("UUID: %s", uuid)
 
 	if err != nil {
 		logrus.Fatalf("failed to prepare LTL properties: %v", err)
@@ -35,7 +37,7 @@ func main() {
 
 	trace := "a,o,b,b,b,b,b"
 
-	_, violations, err := c.SubmitTrace(trace)
+	_, violations, err := c.SubmitTrace(trace, uuid)
 	if err != nil {
 		logrus.Fatalf("failed to submit trace: %v", err)
 		panic(err)

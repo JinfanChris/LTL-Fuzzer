@@ -35,7 +35,7 @@ func (c *LTLFuzzClient) Close() error {
 }
 
 // PrepareLTL sends LTL properties to the server
-func (c *LTLFuzzClient) PrepareLTL(properties, exclude []string) (string, error) {
+func (c *LTLFuzzClient) PrepareLTL(properties, exclude []string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -44,18 +44,19 @@ func (c *LTLFuzzClient) PrepareLTL(properties, exclude []string) (string, error)
 		Exclude:    exclude,
 	})
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return resp.Message, nil
+	return resp.Message, resp.Uuid, nil
 }
 
 // SubmitTrace sends a trace and returns whether it satisfies the properties
-func (c *LTLFuzzClient) SubmitTrace(trace string) (bool, []string, error) {
+func (c *LTLFuzzClient) SubmitTrace(trace, uuid string) (bool, []string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	resp, err := c.client.SubmitTrace(ctx, &pb.TraceInput{
 		Trace: trace,
+		Uuid:  uuid,
 	})
 	if err != nil {
 		return false, nil, err

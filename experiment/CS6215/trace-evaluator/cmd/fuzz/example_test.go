@@ -36,7 +36,7 @@ func FuzzImpl(f *testing.F) {
 	exclude := []string{"a,o,n,b"}
 
 	// Call the Server to load these properties
-	msg, err := c.PrepareLTL(ltlProperties, exclude)
+	msg, uuid, err := c.PrepareLTL(ltlProperties, exclude)
 	if err != nil {
 		f.Fatalf("failed to prepare LTL properties: %v", err)
 		panic(err)
@@ -70,7 +70,7 @@ func FuzzImpl(f *testing.F) {
 			t.Fatalf("failed to load trace: %v", err)
 		}
 
-		_, violations, err := c.SubmitTrace(eventTrace)
+		_, violations, err := c.SubmitTrace(eventTrace, uuid)
 		if err != nil {
 			t.Fatalf("failed to submit trace: %v", err)
 		}
