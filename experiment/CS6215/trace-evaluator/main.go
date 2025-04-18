@@ -13,7 +13,9 @@ func main() {
 		panic(err)
 	}
 
-	ltlProperties := []string{"!G (a -> F c)", "!G (b -> F !a)"}
+	defer c.Close()
+
+	ltlProperties := []string{"!G (a -> F c)", "!G (b -> F a)"}
 	msg, err := c.PrepareLTL(ltlProperties)
 
 	if err != nil {
