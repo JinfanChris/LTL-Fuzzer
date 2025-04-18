@@ -9,7 +9,10 @@ service FuzzService {
   rpc SubmitTrace(TraceInput) returns (CheckResult);
 }
 
-message LTLList { repeated string properties = 1; }
+message LTLList {
+  repeated string properties = 1;
+  repeated string exclude = 2;
+}
 
 message TraceInput { string trace = 1; }
 
