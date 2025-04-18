@@ -1,5 +1,11 @@
 # Example workflow
 
+- Example:
+
+![](https://raw.githubusercontent.com/ChrisVicky/image-bed/main/2025-04/CS6215-example.png)
+
+---
+
 ```go
 package main
 

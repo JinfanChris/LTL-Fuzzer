@@ -1,5 +1,9 @@
 # Fuzz test framework
 
+- Example:
+
+![](https://raw.githubusercontent.com/ChrisVicky/image-bed/main/2025-04/CS6215-fuzz.png)
+
 ## How to run
 
 1. Start grpc server (see)
