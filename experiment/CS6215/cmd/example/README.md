@@ -58,6 +58,7 @@ func main() {
 ```
 
 - output:
+  > Please run the server prior to this script. The server is located in `${PROJECT_DIR}/build/src/grpc/ltlfuzz_grpc_server`
 
 ```bash
 ❯ go run cmd/example/main.go
