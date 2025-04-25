@@ -255,7 +255,7 @@ void Automata::set_formula(const std::string &formula,
     this->automata_ = excl.constrain(this->automata_, true);
   }
 
-  custom_print(std::cout, this->automata_, this->pf.f);
+  // custom_print(std::cout, this->automata_, this->pf.f);
 
   // std::cout << "After Exclude" << std::endl;
   // custom_print(std::cout, this->automata_, this->pf.f);
